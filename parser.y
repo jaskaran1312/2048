@@ -12,7 +12,7 @@ extern FILE* yyin;
 void yyerror(const char* s);
 
 board* b;
-
+int err = 0;
 %}
 
 %union {
@@ -36,20 +36,26 @@ board* b;
 %%
 
 command:
-       | expression PERIOD EOL 	{ action(op); printBoard(b); return 0; }
-       | expression EOL 	{ red(); printf("Syntax Error. Hint: use a Period \".\" at the end.\n"); fflush(stdout); reset(); prompt(); return 0; }
+       | expression PERIOD EOL 	{ if(!err) action(op); if(!err) printBoard(b); else printf("----> "); err=0; return 0; }
+       | expression EOL 	{ red(); printf("Syntax Error. Hint: use a Period \".\" at the end.\n"); fflush(stdout); reset();  prompt(); return 1; }
+       | expression 		{ red(); printf("Syntax Error. Hint: use a Period \".\" at the end.\n"); fflush(stdout); reset(); prompt(); return 1; }
        | HELP PERIOD EOL	{ action(7); return 0; }			
-       | HELP EOL	 	{ red(); printf("Syntax Error. Hint: use a Period \".\" at the end.\n"); fflush(stdout); reset(); prompt(); return 0; }
-       | err EOL	 	{ red(); printf("Syntax Error. Hint: type 'HELP.' for usage.\n"); fflush(stdout); reset(); prompt(); return 0; }
+       | HELP EOL	 	{ red(); printf("Syntax Error. Hint: use a Period \".\" at the end.\n"); fflush(stdout); reset(); prompt(); return 1; }
+       | err EOL	 	{ red(); printf("Syntax Error. Hint: type 'HELP.' for usage.\n"); fflush(stdout); reset(); prompt(); return 1; }
        | EOL			{ prompt(); return 0; }
-       | keywords EOL	 	{ red(); printf("Syntax Error. Hint: type 'HELP.' for usage.\n"); fflush(stdout); reset(); prompt(); return 0; }
+       | keywords EOL	 	{ red(); printf("Syntax Error. Hint: type 'HELP.' for usage.\n"); fflush(stdout); reset(); prompt(); return 1; }
+       | keywords PERIOD EOL	 	{ red(); printf("Syntax Error. Hint: type 'HELP.' for usage.\n"); fflush(stdout); reset(); prompt(); return 1; }
 
 ;
 
-err: ID
-   | UNDEF
-   | PERIOD
-   | COMMA
+err: errsub1
+   | err errsub1
+;
+
+errsub1: ID
+       | UNDEF
+       | PERIOD
+       | COMMA
 ;
 
 keywords: ADD
@@ -74,14 +80,15 @@ expression: move		{ op = 1; }
 ;
 
 move: operation direction
-    | operation ID		{red(); printf("Syntax Error. Hint: Use uppercase for direction.\n"); reset(); prompt(); return 0;}
-    | ID direction		{red(); printf("Syntax Error. Hint: Use uppercase for operation.\n"); reset(); prompt(); return 0;}	    
+    | operation ID		{red(); printf("Syntax Error. Hint: Use uppercase for direction.\n"); reset(); err=1;}
+    | ID direction		{red(); printf("Syntax Error. Hint: Use uppercase for operation.\n"); reset(); err=1;}	    
 ;
 
 assignment: ASSIGN assignable TO location 	{ num=$2; }
-	  | ID assignable TO location		{ red(); printf("Syntax Error. Hint: Use uppercase for keyword 'ASSIGN'.\n"); reset(); prompt(); return 0;}	    
-	  | ASSIGN assignable ID location	{ red(); printf("Syntax Error. Hint: Use uppercase for keyword 'TO'.\n"); reset(); prompt(); return 0;}	    
-	  | ID assignable ID location 		{ red(); printf("Syntax Error. Hint: Use uppercase for keywords 'ASSIGN' and 'TO'.\n"); reset(); prompt(); return 0;}	    
+	  | ID assignable TO location		{ red(); printf("Syntax Error. Hint: Use uppercase for keyword 'ASSIGN'.\n"); reset(); err=1; }
+	  | ASSIGN assignable ID location	{ red(); printf("Syntax Error. Hint: Use uppercase for keyword 'TO'.\n"); reset(); err=1; }	    
+	  | ID assignable ID location 		{ red(); printf("Syntax Error. Hint: Use uppercase for keywords 'ASSIGN' and 'TO'.\n"); reset(); err =1 ;}	    
+	  | ASSIGN ID TO location		{ red(); printf("Syntax Error. Hint: Usage is ASSIGN <value> TO <x>,<y>.\n"); reset(); err =1 ;}	    
 ;
 
 assignable: NUMBER	{$$=$1;}
@@ -94,11 +101,12 @@ location: pair		{ loc=1; }
     	| ID		{ id=$1; loc=0; }
 ;
 
-naming: VAR ID IS pair { id=$2;}
+naming: VAR ID IS pair 		{ id=$2;}
+      | VAR keywords IS pair 	{ err=1; red(); printf("Error. Cannot use keywords as variable name.\n"); reset();}
 ;
 
-pair: NUMBER COMMA NUMBER { x = $1; y = $3; if(action(6)) return 0; }
-    | ID COMMA NUMBER { red(); printf("Syntax Error. Please type <num>,<num>\n"); reset(); prompt(); return 0;}
+pair: NUMBER COMMA NUMBER { x = $1; y = $3; if(action(6)) err=1; }
+    | ID COMMA NUMBER { red(); printf("Syntax Error. Please type <num>,<num>\n"); reset(); prompt(); err=1;}
 
 operation: ADD		{ operation=0; }
 	 | SUB		{ operation=1; }
@@ -122,9 +130,19 @@ int main() {
 	printf("Welcome to the 2048 interpreter.\nType 'HELP.' for info.\n");
 	reset();
 	printf("Written by Jaskaran Singh Bhatia in C for CSF363\n\n");
-	prompt();
+	printf("Here's your board! Have fun!\n");
+	printBoard(b);
 	do {
-		yyparse();
+		int err = yyparse();
+#ifdef EVAL
+		if(err){
+			fprintf(stderr, "%d\n", -1);
+		}
+		else{
+			printState(b);
+		}
+#endif
+
 #ifdef DEBUG
 		printf("Completed!\n");
 #endif
@@ -152,6 +170,8 @@ int action(int op){
 		//loc = 1: pair; loc = 0: var;
 		if(loc){
 			assign(b->cells[idx], num);
+			printf("Assigned %d to (%d, %d).\n", num, x, y);
+		
 		}
 		else{
 			char *idptr = strtok(id, " ");
@@ -169,11 +189,12 @@ int action(int op){
 			else{
 				assign(b->cells[idx], num);
 				green();
-				printf("Assigned %d to %s.\n", num, identifier);
+				printf("Assigned %d to %s at (%d, %d).\n", num, identifier, x, y);
 				reset();
 			}
 			
 		}
+
 	}
 
 	else if(op==3){
@@ -198,6 +219,12 @@ int action(int op){
 
 	else if(op==4){
 		if(loc){
+			if(!query(b->cells[idx])){
+				red();
+				printf("No tile at (%d, %d).\n", x, y);
+				reset();
+				return 0;
+			}
 			green();
 			printf("Value at (%d, %d) is %d\n", x, y, query(b->cells[idx]));
 			reset();
@@ -211,9 +238,16 @@ int action(int op){
 				return 0;
 			}
 			else{
-				green();
-				printf("Value at (%d, %d) is %d\n", x, y, query(b->cells[idx]));
-				reset();
+				if(!query(b->cells[idx])){
+					red();
+					printf("No tile at (%d, %d).\n", x, y);
+					reset();
+				}
+				else{
+					green();
+					printf("Value at (%d, %d) is %d.\n", x, y, query(b->cells[idx]));
+					reset();
+				}	
 			}
 	
 		}

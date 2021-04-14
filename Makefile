@@ -1,3 +1,8 @@
+eval: parser scanner
+	gcc -o exe lex.yy.c parser.tab.c main_modules.c -ll -ly -DEVAL
+	./exe
+
+
 debug: parser scanner
 	gcc -o exe lex.yy.c parser.tab.c main_modules.c -ll -ly -DDEBUG
 	./exe

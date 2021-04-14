@@ -91,13 +91,21 @@ void printBoard(board *b)
 	printf("\n");
 	for(int i=0; i<16; i++){
 		printf("%d: val %d\n", i, b->cells[i]->val);
-		printLabel(b->cells[i]);
+		//printLabel(b->cells[i], i);
 	}
 		printf("-------\n");
 #endif
 
 }
 
+void printState(board *b){
+	for(int i = 0; i<16; i++){
+		fprintf(stderr, "%d\40", b->cells[i]->val);
+	}
+	for(int i = 0; i<16; i++){
+		printLabel(b->cells[i], i);
+	}
+}
 
 int checkPair(int x, int y)
 {
@@ -191,13 +199,14 @@ int findLabel(cell *c, char *id)
 	return 0;
 }
 
-void printLabel(cell *c)
+void printLabel(cell *c, int idx)
 {
-	node *label = c->label;
-	while (label->next)
+	node *l = c->label;
+//	printf("%d\n", l);
+	while (l->next)
 	{
-		printf("%s\n", label->id);
-		label = label->next;
+		fprintf(stderr, "%d,%d%s\40",(idx/4)+1, idx%4 +1, l->id);
+		l = l->next;
 	}
 }
 

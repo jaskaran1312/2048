@@ -7,6 +7,7 @@ int x;
 int y;
 int num;
 char *id;
+int err;
 
 typedef struct nodeStruct{
 	char* id;
@@ -33,10 +34,11 @@ typedef struct boardStruct{
 //Utility
 board *init();
 void printBoard(board *b);
+void printState(board *b);
 int checkPair(int x, int y);
 
 //Board manipulation
-void printLabel(cell *c);
+void printLabel(cell *c, int idx);
 void addLabel(cell* c, char* id);
 void dropLabels(cell* c);
 void concatLabels(cell *a, cell *b);
