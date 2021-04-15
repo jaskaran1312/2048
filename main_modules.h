@@ -53,7 +53,7 @@ int addRandomTile(board *b);
 int compute(int, int);
 
 //Handlers
-void move(int, int, board*);
+void move(int, int, board*, int);
 void assign(cell *c, int val);
 void name(cell *c, char *id);
 int query(cell *c);

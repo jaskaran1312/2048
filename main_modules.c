@@ -99,12 +99,15 @@ void printBoard(board *b)
 }
 
 void printState(board *b){
-	for(int i = 0; i<16; i++){
+	for(int i = 0; i<15; i++){
 		fprintf(stderr, "%d\40", b->cells[i]->val);
 	}
+	fprintf(stderr, "%d", b->cells[15]->val);
+
 	for(int i = 0; i<16; i++){
 		printLabel(b->cells[i], i);
 	}
+	fprintf(stderr, "\n");
 }
 
 int checkPair(int x, int y)
@@ -202,12 +205,19 @@ int findLabel(cell *c, char *id)
 void printLabel(cell *c, int idx)
 {
 	node *l = c->label;
+	int flag=0;
+	if(l->next){
+		fprintf(stderr, "\40%d,%d%s",(idx/4)+1, idx%4 +1, l->id);
+		l = l->next;
+		flag=1;
+	}
 //	printf("%d\n", l);
 	while (l->next)
 	{
-		fprintf(stderr, "%d,%d%s\40",(idx/4)+1, idx%4 +1, l->id);
+		fprintf(stderr, ",%s", l->id);
 		l = l->next;
 	}
+
 }
 
 int getValue(cell *c)
@@ -220,7 +230,7 @@ void putValue(cell *c, int val)
 	c->val = val;
 }
 
-void move(int dir, int op, board *b)
+void move(int dir, int op, board *b, int interpretation)
 {
 
 	char *directions[4] = {"LEFT", "UP", "RIGHT", "DOWN"};
@@ -253,50 +263,93 @@ void move(int dir, int op, board *b)
 #ifdef DEBUG
 		printf("Pre Compression\n");
 #endif
-		for(int index = 0; index < curr-1 ; index++){
-			if(tempArr[index]->val == tempArr[index+1]->val){
-				tempArr[index]->val = compute(tempArr[index]->val, op);
-				tempArr[index+1]->val = 0;
-				concatLabels(tempArr[index], tempArr[index+1]);
-				dropLabels(tempArr[index+1]);
+
+		if(!interpretation){
+			for(int index = 0; index < curr-1 ; index++){
+				if(tempArr[index]->val == tempArr[index+1]->val){
+					tempArr[index]->val = compute(tempArr[index]->val, op);
+					tempArr[index+1]->val = 0;
+					concatLabels(tempArr[index], tempArr[index+1]);
+					dropLabels(tempArr[index+1]);
+				}
 			}
 		}
+		else{	
+			for(int index=curr; index<4; index++){
+				tempArr[index]=malloc(sizeof(cell));
+				tempArr[index]->label=malloc(sizeof(node));
+				tempArr[index]->val = 0;
+				tempArr[index]->label->next = NULL;
+			
+			}
+
+			for(int index = 0; index < curr-1 ; index++){
+				if(tempArr[index]->val == tempArr[index+1]->val){
+					tempArr[index]->val = compute(tempArr[index]->val, op);
+					if(op==1) dropLabels(tempArr[index]);
+					else concatLabels(tempArr[index], tempArr[index+1]);
+					dropLabels(tempArr[index+1]);
+					for(int k=index; k<curr-2; k++){
+						tempArr[k+1]=tempArr[k+2];
+					}
+					tempArr[curr-1]=malloc(sizeof(cell));
+					tempArr[curr-1]->label=malloc(sizeof(node));
+					tempArr[curr-1]->val = 0;
+					tempArr[curr-1]->label->next = NULL;
+				}
+			}
+		}
+
+
 #ifdef DEBUG
 		printf("Computation\n");
+		printf("curr is %d\n", curr);
 #endif
-
 		
 		cell *compTempArr[4] = {NULL, NULL, NULL, NULL};
-		int k=0;
-		for(int j = 0; j<curr; j++){
-			if(tempArr[j]->val){
-				compTempArr[k] = tempArr[j];
-				k++;
-			}
+		if(!interpretation){
+			int k=0;
+			for(int j = 0; j<curr; j++){
+				if(tempArr[j]->val){
+					compTempArr[k] = tempArr[j];
+					k++;
+				}
 
+			}
 		}
+
+	
 #ifdef DEBUG
 		printf("Post Compression\n");
 #endif
 
 
 
-		k = 0;
-		for(int j = S + i*O; j != E + i*O; j+=I){
-			if(compTempArr[k]){
-				b->cells[j] = compTempArr[k];
+		if(!interpretation){
+			int k = 0;
+			for(int j = S + i*O; j != E + i*O; j+=I){
+			
+				if(compTempArr[k]){
+					b->cells[j] = compTempArr[k];
+					k++;
+				}
+				else{
+					b->cells[j] = malloc(sizeof(cell));
+					b->cells[j]->label = malloc(sizeof(node));
+					b->cells[j]->val = 0;
+					b->cells[j]->label->next = NULL;
+				
+				}
+
+			}
+		}
+		else{
+			int k=0;
+			for(int j = S + i*O; j != E + i*O; j+=I){
+				b->cells[j] = tempArr[k];
 				k++;
 			}
-			else{
-				b->cells[j] = malloc(sizeof(cell));
-				b->cells[j]->label = malloc(sizeof(node));
-				b->cells[j]->val = 0;
-				b->cells[j]->label->next = NULL;
-			
-			}
-
-		}
-	
+		}			
 	
 	}
 
@@ -381,6 +434,7 @@ int compute(int x, int op){
 void assign(cell *c, int val)
 {
 	putValue(c, val);
+	if(val==0) dropLabels(c);
 }
 
 void name(cell *c, char *identifier)
