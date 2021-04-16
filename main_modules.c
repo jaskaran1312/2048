@@ -401,8 +401,11 @@ int addRandomTile(board *b){
 
 	while(1){
 		int num = rand()%16;
+		int newVal = rand()%2;
+		if(newVal) newVal=4;
+		else newVal=2;
 		if(b->cells[num]->val==0){
-			assign(b->cells[num], 2);
+			assign(b->cells[num], newVal);
 			return 1;		
 		}
 

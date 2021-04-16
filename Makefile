@@ -8,12 +8,12 @@ customdebug: parser scanner
 	./exe
 
 custom: parser scanner
-	gcc -o exe lex.yy.c parser.tab.c main_modules.c -ll -ly -DCUSTOM
+	gcc -o exe lex.yy.c parser.tab.c main_modules.c -lfl -ly -DCUSTOM
 	clear
 	./exe
 
 eval: parser scanner
-	gcc -o exe lex.yy.c parser.tab.c main_modules.c -ll -ly -DEVAL
+	gcc -o exe lex.yy.c parser.tab.c main_modules.c -lfl -ly -DEVAL
 	clear
 	./exe
 
@@ -23,7 +23,7 @@ debug: parser scanner
 	./exe
 
 all: parser scanner
-	gcc -o exe lex.yy.c parser.tab.c main_modules.c -ll -ly
+	gcc -o exe lex.yy.c parser.tab.c main_modules.c -lfl -ly
 	clear
 	./exe
 

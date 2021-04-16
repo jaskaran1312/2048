@@ -39,7 +39,7 @@ int value=0;
 
 command:
        | expression PERIOD EOL 	{ if(!err) action(op); if(!err) printBoard(b); else printf("----> "); if(!err) err=0; return 0; }
-       | expression COMMA EOL 	{ red(); printf("Syntax Error. Hint: use a Period \".\" at the end.\n"); fflush(stdout); reset();  prompt(); err=1; return 1; }
+//       | expression COMMA EOL 	{ red(); printf("Syntax Error. Hint: use a Period \".\" at the end.\n"); fflush(stdout); reset();  prompt(); err=1; return 1; }
        | expression EOL 	{ red(); printf("Syntax Error. Hint: use a Period \".\" at the end.\n"); fflush(stdout); reset();  prompt(); err=1; return 1; }
        | expression 		{ red(); printf("Syntax Error. Hint: use a Period \".\" at the end.\n"); fflush(stdout); reset(); prompt(); err=1; return 1; }
        | HELP PERIOD EOL	{ action(7); return 0; }			
@@ -242,7 +242,7 @@ int action(int op){
 			else{
 				assign(b->cells[idx], num);
 				green();
-				printf("Assigned %d to %s at (%d, %d).\n", num, identifier, x, y);
+				printf("Assigned %d to %s at (%d, %d).\n", num, identifier, (idx/4)+1, (idx%4) +1);
 				reset();
 			}
 			
